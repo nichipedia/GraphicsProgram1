@@ -19,13 +19,9 @@ public class DrawJGraph {
 
 
 
+        showSelectPointDialog();
 
 
-        JLabel label = createSelectPointsBuffer();
-        JPanel text = createSelectControlPanel();
-
-
-        display(label, text);
 
 
 
@@ -74,9 +70,7 @@ public class DrawJGraph {
                 if (points.size() < 3) {
                     JOptionPane.showMessageDialog(myFrame, "You have not selected 3 points");
                 } else {
-                    JLabel polygonPane = drawPolygon(img, points);
-                    JPanel buttonPanel = createPolygonControlPanel();
-                    display(polygonPane, buttonPanel);
+                   showSelectFunctionDialog();
                 }
             }
         });
@@ -93,13 +87,14 @@ public class DrawJGraph {
         floodFill4Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Color background = JColorChooser.showDialog(null, "Change Button Background",
+                final Color background = JColorChooser.showDialog(null, "Change Choose Fill Color",
                         null);
                 JOptionPane.showMessageDialog(myFrame, "Click a area in the polygon for a seed point");
                 myFrame.getContentPane().getComponent(0).addMouseListener(new MouseAdapter() {
                     @Override
                     public void mousePressed(MouseEvent e) {
                         Point seedPoint = new Point(e.getX(), e.getY());
+                        showFloodFill4Dialog(background, seedPoint);
                     }
                 });
             }
@@ -109,6 +104,8 @@ public class DrawJGraph {
         buttonPanel.add(polygonFillButton);
         return buttonPanel;
     }
+
+
 
     public static JLabel createSelectPointsBuffer() {
         JLabel label = paintPoints(img, points);
@@ -136,6 +133,30 @@ public class DrawJGraph {
         myFrame.getContentPane().add(main);
         myFrame.pack();
         myFrame.setVisible(true);
+    }
+
+    public static void showFloodFill4Dialog(Color fc, Point seedPoint) {
+        int x = (int) seedPoint.getX();
+        int y = (int) seedPoint.getY();
+        floodFill4(x, y, img.getRGB(x,y), fc.getRGB());
+        Icon icon = new ImageIcon(img);
+        JLabel label = new JLabel(icon);
+        JPanel buttonPanel = new JPanel();
+        JButton redoButton = new JButton("Redo");
+        buttonPanel.add(redoButton);
+        display(label, buttonPanel);
+    }
+
+    public static void showSelectPointDialog() {
+        JLabel label = createSelectPointsBuffer();
+        JPanel text = createSelectControlPanel();
+        display(label, text);
+    }
+
+    public static void showSelectFunctionDialog() {
+        JLabel polygonPane = drawPolygon(img, points);
+        JPanel buttonPanel = createPolygonControlPanel();
+        display(polygonPane, buttonPanel);
     }
 
     public static JLabel drawPolygon(BufferedImage img, ArrayList<Point> points) {
@@ -170,6 +191,18 @@ public class DrawJGraph {
         Icon icon = new ImageIcon(img);
         JLabel label = new JLabel(icon);
         return label;
+    }
+
+    public static void floodFill4(int x, int y, int ic, int fc) {
+        int color = img.getRGB(x,y);
+        if (color == ic) {
+
+            img.setRGB(x,y,fc);
+            floodFill4(x+1, y, ic, fc);
+            floodFill4(x-1,y,ic,fc);
+            floodFill4(x,y+1,ic,fc);
+            floodFill4(x,y-1,ic,fc);
+        }
     }
 
 }
