@@ -61,8 +61,8 @@ public class DrawJGraph {
     }
 
     public static JPanel createSelectControlPanel() {
-        JPanel textPanel = new JPanel();
-        JLabel textLabel = new JLabel("Click Area Please");
+        JPanel textPanel = new JPanel(new GridLayout(0,1));
+        JLabel textLabel = new JLabel("Click Area to select points");
         JButton undoButton = new JButton("Draw Points");
         undoButton.addActionListener(new ActionListener() {
             @Override
@@ -80,10 +80,9 @@ public class DrawJGraph {
     }
 
     public static JPanel createPolygonControlPanel() {
-        JPanel buttonPanel = new JPanel(new GridLayout(1,4));
+        JPanel buttonPanel = new JPanel(new GridLayout(0,1));
+        JLabel label = new JLabel("Select Algorithm");
         JButton floodFill4Button = new JButton("Flood Fill 4");
-        JButton floodFill8Button = new JButton("Flood Fill 8");
-        JButton polygonFillButton = new JButton("Polygon Fill Button");
         floodFill4Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -99,12 +98,29 @@ public class DrawJGraph {
                 });
             }
         });
+        JButton floodFill8Button = new JButton("Flood Fill 8");
+        floodFill8Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                final Color background = JColorChooser.showDialog(null, "Change Choose Fill Color",
+                        null);
+                JOptionPane.showMessageDialog(myFrame, "Click a area in the polygon for a seed point");
+                myFrame.getContentPane().getComponent(0).addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        Point seedPoint = new Point(e.getX(), e.getY());
+                        showFloodFill8Dialog(background, seedPoint);
+                    }
+                });
+            }
+        });
+        JButton polygonFillButton = new JButton("Polygon Fill Button");
+        buttonPanel.add(label);
         buttonPanel.add(floodFill4Button);
         buttonPanel.add(floodFill8Button);
         buttonPanel.add(polygonFillButton);
         return buttonPanel;
     }
-
 
 
     public static JLabel createSelectPointsBuffer() {
@@ -142,7 +158,33 @@ public class DrawJGraph {
         Icon icon = new ImageIcon(img);
         JLabel label = new JLabel(icon);
         JPanel buttonPanel = new JPanel();
-        JButton redoButton = new JButton("Redo");
+        JButton redoButton = new JButton("Reselect Points");
+        redoButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                points.clear();
+                showSelectPointDialog();
+            }
+        });
+        buttonPanel.add(redoButton);
+        display(label, buttonPanel);
+    }
+
+    public static void showFloodFill8Dialog(Color fc, Point seedPoint) {
+        int x = (int) seedPoint.getX();
+        int y = (int) seedPoint.getY();
+        floodFill8(x, y, img.getRGB(x, y), fc.getRGB());
+        Icon icon = new ImageIcon(img);
+        JLabel label = new JLabel(icon);
+        JPanel buttonPanel = new JPanel();
+        JButton redoButton = new JButton("Reselect Points");
+        redoButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                points.clear();
+                showSelectPointDialog();
+            }
+        });
         buttonPanel.add(redoButton);
         display(label, buttonPanel);
     }
@@ -193,15 +235,39 @@ public class DrawJGraph {
         return label;
     }
 
-    public static void floodFill4(int x, int y, int ic, int fc) {
-        int color = img.getRGB(x,y);
-        if (color == ic) {
+    public static boolean isInCanvas(int x, int y) {
+        return (x < 720 && y < 480 && x >= 0 && y >= 0);
+    }
 
-            img.setRGB(x,y,fc);
-            floodFill4(x+1, y, ic, fc);
-            floodFill4(x-1,y,ic,fc);
-            floodFill4(x,y+1,ic,fc);
-            floodFill4(x,y-1,ic,fc);
+
+    public static void floodFill4(int x, int y, int ic, int fc) {
+        if (isInCanvas(x,y)) {
+            int color = img.getRGB(x, y);
+            if (color == ic) {
+                img.setRGB(x, y, fc);
+                floodFill4(x + 1, y, ic, fc);
+                floodFill4(x - 1, y, ic, fc);
+                floodFill4(x, y + 1, ic, fc);
+                floodFill4(x, y - 1, ic, fc);
+            }
+        }
+    }
+
+    //This will overflow because it bleeds out of the polygon
+    public static void floodFill8(int x, int y, int ic, int fc) {
+        if (isInCanvas(x,y)) {
+            int color = img.getRGB(x, y);
+            if (color == ic) {
+                img.setRGB(x, y, fc);
+                floodFill8(x + 1, y, ic, fc);
+                floodFill8(x - 1, y, ic, fc);
+                floodFill8(x, y + 1, ic, fc);
+                floodFill8(x, y - 1, ic, fc);
+                floodFill8(x+1,y+1, ic, fc);
+                floodFill8(x-1,y-1, ic, fc);
+                floodFill8(x-1,y+1, ic, fc);
+                floodFill8(x+1,y-1, ic, fc);
+            }
         }
     }
 
