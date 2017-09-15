@@ -8,10 +8,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.*;   // For BufferedImage
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import javax.swing.*;      // To display the outcome// For color
 
 
-public class DrawJGraph {
+public class DrawFill
+{
     final static JFrame myFrame = new JFrame();
     final static ArrayList<Point> points = new ArrayList<>();
     final static BufferedImage img = new BufferedImage(720, 480, BufferedImage.TYPE_INT_RGB);
@@ -115,6 +119,14 @@ public class DrawJGraph {
             }
         });
         JButton polygonFillButton = new JButton("Polygon Fill Button");
+        polygonFillButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                showPolygonFillDialog(Color.BLACK);
+            }
+        });
         buttonPanel.add(label);
         buttonPanel.add(floodFill4Button);
         buttonPanel.add(floodFill8Button);
@@ -187,6 +199,10 @@ public class DrawJGraph {
         });
         buttonPanel.add(redoButton);
         display(label, buttonPanel);
+    }
+
+    public static void showPolygonFillDialog(Color fc) {
+        polygonFill(fc.getRGB());
     }
 
     public static void showSelectPointDialog() {
@@ -271,4 +287,79 @@ public class DrawJGraph {
         }
     }
 
+    public static void polygonFill(int fc) {
+        int n = points.size();
+        int edges = 0;
+        int activeEdges; // number of  active edges
+        // active edge table (indexes into edge table)
+        int[] aedge;
+        int[] xEdge = new int[n];
+        int[] yMin = new int[n];
+        int[] yMax = new int[n];
+        double[] mInv = new double[n];
+        int[] x = new int[n];
+        int[] y = new int[n];
+        int i = 0;
+        Collections.sort(points, new Comparator<Point>() {
+            @Override
+            public int compare(Point o1, Point o2)
+            {
+                return o1.getY() < o2.getY() ? -1 : (o1.getY() > o2.getY()) ? 1 : 0;
+            }
+        });
+
+        for (Point point:points) {
+            x[i] = (int) point.getX();
+            y[i] = (int) point.getY();
+            i++;
+        }
+        int yBoundMin = y[0];
+        int yBoundMax = y[n];
+
+        int length, iplus1, x1, x2, y1, y2;
+        for (i=0; i<n; i++) {
+            iplus1 = i==n-1?0:i+1;
+            y1 = y[i];
+            y2 = y[iplus1];
+            x1 = x[i];
+            x2 = x[iplus1];
+            if (y1==y2) {
+                continue; //ignore horizontal lines
+            }
+            if (y1>y2) { // swap ends
+                int tmp = y1;
+                y1=y2;
+                y2=tmp;
+                tmp=x1;
+                x1=x2;
+                x2=tmp;
+            }
+            double slope = (double)(x2-x1)/(y2-y1);
+            xEdge[edges] = x1;
+            yMin[edges] = y1;
+            yMax[edges] = y2;
+            mInv[edges] = slope;
+            edges++;
+        }
+        aedge = new int[edges];
+        for (i = 0; i < edges; i++) {
+            aedge[i] = 0;
+        }
+        int yit = yBoundMin;
+        while (yit < yBoundMax) {
+            for (i = 0; i < edges; i++) {
+                if (yit == yMin[i]) {
+                    aedge[i] = 1;
+                }
+                if (yit == yMax[i]) {
+                    aedge[i] = 0;
+                }
+            }
+            for (int xit = 0; xit<720; xit++) {
+                if (img.getRGB(xit, yit) == Color.black.getRGB()) {
+                    
+                }
+            }
+        }
+    }
 }
