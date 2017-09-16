@@ -1,6 +1,8 @@
 /**
  * Created by NicholasMoran on 9/12/17.
  */
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -24,18 +26,6 @@ public class DrawFill
 
 
         showSelectPointDialog();
-
-
-
-
-
-
-
-
-
-
-
-
         // g2d.setColor(Color.RED);
         // g2d.drawLine(10, 5, 350, 320);   // Draw line #1 with RED color
 
@@ -67,19 +57,19 @@ public class DrawFill
     public static JPanel createSelectControlPanel() {
         JPanel textPanel = new JPanel(new GridLayout(0,1));
         JLabel textLabel = new JLabel("Click Area to select points");
-        JButton undoButton = new JButton("Draw Points");
-        undoButton.addActionListener(new ActionListener() {
+        JButton drawButton = new JButton("Draw Points");
+        drawButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (points.size() < 3) {
-                    JOptionPane.showMessageDialog(myFrame, "You have not selected 3 points");
+                    JOptionPane.showMessageDialog(myFrame, "You have not selected a minimum of 3 points");
                 } else {
-                   showSelectFunctionDialog();
+                    showSelectFunctionDialog();
                 }
             }
         });
         textPanel.add(textLabel);
-        textPanel.add(undoButton);
+        textPanel.add(drawButton);
         return textPanel;
     }
 
@@ -90,7 +80,7 @@ public class DrawFill
         floodFill4Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                final Color background = JColorChooser.showDialog(null, "Change Choose Fill Color",
+                final Color background = JColorChooser.showDialog(null, "Choose Fill Color",
                         null);
                 JOptionPane.showMessageDialog(myFrame, "Click a area in the polygon for a seed point");
                 myFrame.getContentPane().getComponent(0).addMouseListener(new MouseAdapter() {
@@ -106,7 +96,7 @@ public class DrawFill
         floodFill8Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                final Color background = JColorChooser.showDialog(null, "Change Choose Fill Color",
+                final Color background = JColorChooser.showDialog(null, "Choose Fill Color",
                         null);
                 JOptionPane.showMessageDialog(myFrame, "Click a area in the polygon for a seed point");
                 myFrame.getContentPane().getComponent(0).addMouseListener(new MouseAdapter() {
@@ -124,7 +114,9 @@ public class DrawFill
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                showPolygonFillDialog(Color.BLACK);
+                final Color background = JColorChooser.showDialog(null, "Choose Fill Color",
+                        null);
+                showPolygonFillDialog(background);
             }
         });
         buttonPanel.add(label);
@@ -140,7 +132,7 @@ public class DrawFill
 
         label.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 points.add(new Point(e.getX(), e.getY()));
                 JLabel imgPanel = createSelectPointsBuffer();
                 JPanel controlPanel = createSelectControlPanel();
@@ -202,7 +194,20 @@ public class DrawFill
     }
 
     public static void showPolygonFillDialog(Color fc) {
-        polygonFill(fc.getRGB());
+        polygonFill(fc);
+        Icon icon = new ImageIcon(img);
+        JLabel label = new JLabel(icon);
+        JPanel buttonPanel = new JPanel();
+        JButton redoButton = new JButton("Reselect Points");
+        redoButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                points.clear();
+                showSelectPointDialog();
+            }
+        });
+        buttonPanel.add(redoButton);
+        display(label, buttonPanel);
     }
 
     public static void showSelectPointDialog() {
@@ -287,34 +292,40 @@ public class DrawFill
         }
     }
 
-    public static void polygonFill(int fc) {
+    public static void polygonFill(Color fc) {
         int n = points.size();
+        System.out.println(n);
         int edges = 0;
+        Graphics2D g2d = img.createGraphics();
+        g2d.setColor(fc);
         int activeEdges; // number of  active edges
         // active edge table (indexes into edge table)
         int[] aedge;
-        int[] xEdge = new int[n];
+        double[] xEdge = new double[n];
         int[] yMin = new int[n];
         int[] yMax = new int[n];
         double[] mInv = new double[n];
         int[] x = new int[n];
         int[] y = new int[n];
         int i = 0;
-        Collections.sort(points, new Comparator<Point>() {
-            @Override
-            public int compare(Point o1, Point o2)
-            {
-                return o1.getY() < o2.getY() ? -1 : (o1.getY() > o2.getY()) ? 1 : 0;
-            }
-        });
-
         for (Point point:points) {
             x[i] = (int) point.getX();
             y[i] = (int) point.getY();
             i++;
         }
+
         int yBoundMin = y[0];
-        int yBoundMax = y[n];
+        int yBoundMax = y[n-1];
+        System.out.println(i);
+        for (int num:y) {
+            if (num < yBoundMin) {
+                yBoundMin = num;
+            }
+            if (num > yBoundMax) {
+                yBoundMax = num;
+            }
+        }
+
 
         int length, iplus1, x1, x2, y1, y2;
         for (i=0; i<n; i++) {
@@ -342,22 +353,65 @@ public class DrawFill
             edges++;
         }
         aedge = new int[edges];
-        for (i = 0; i < edges; i++) {
-            aedge[i] = 0;
+        int[] sedge = new int[edges];
+
+        for (i=0; i<edges; i++) {
+            int index = sedge[i];
+            System.out.println(i+"	"+xEdge[index]+"  "+yMin[index]+"  "+yMax[index] + "  " + mInv[index] );
         }
-        int yit = yBoundMin;
-        while (yit < yBoundMax) {
+
+        activeEdges = 0;
+        for (int yit = yBoundMin; yit < yBoundMax; yit++) {
+            i = 0;
+            while (i<activeEdges) {
+                int index = aedge[i];
+                if (yit<=yMin[index] || yit>=yMax[index]) {
+                    for (int j=i; j<activeEdges-1; j++)
+                        aedge[j] = aedge[j+1];
+                    activeEdges--;
+                } else
+                    i++;
+            }
+
             for (i = 0; i < edges; i++) {
-                if (yit == yMin[i]) {
-                    aedge[i] = 1;
-                }
-                if (yit == yMax[i]) {
-                    aedge[i] = 0;
+                if (yit==yMin[i]) {
+                    int index = 0;
+                    while (index<activeEdges && xEdge[i]>xEdge[aedge[index]])
+                        index++;
+                    for (int j=activeEdges-1; j>=index; j--)
+                        aedge[j+1] = aedge[j];
+                    aedge[index] = i;
+                    activeEdges++;
                 }
             }
-            for (int xit = 0; xit<720; xit++) {
-                if (img.getRGB(xit, yit) == Color.black.getRGB()) {
-                    
+
+
+            for (i = 0; i < activeEdges; i += 2) {
+                x1 = (int)(xEdge[aedge[i]] + 0.5);
+                x2 = (int)(xEdge[aedge[i+1]] - 0.5);
+                g2d.drawLine(x1,yit,x2,yit);
+            }
+
+
+            int index;
+            double xSort=-Double.MAX_VALUE, xSort2;
+            boolean sorted = true;
+            for (i=0; i<activeEdges; i++) {
+                index = aedge[i];
+                xSort2 = xEdge[index] + mInv[index];
+                xEdge[index] = xSort2;
+                if (xSort2<xSort) sorted = false;
+                xSort = xSort2;
+            }
+            if (!sorted) {
+                int min, tmp;
+                for (i = 0; i < activeEdges; i++) {
+                    min = i;
+                    for (int j = i; j < activeEdges; j++)
+                        if (xEdge[aedge[j]] < xEdge[aedge[min]]) min = j;
+                    tmp = aedge[min];
+                    aedge[min] = aedge[i];
+                    aedge[i] = tmp;
                 }
             }
         }
